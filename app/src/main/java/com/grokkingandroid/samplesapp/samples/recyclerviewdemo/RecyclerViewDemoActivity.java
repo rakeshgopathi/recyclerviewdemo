@@ -31,7 +31,7 @@ import static android.view.GestureDetector.SimpleOnGestureListener;
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 public class RecyclerViewDemoActivity
         extends Activity
-        implements RecyclerView.OnItemTouchListener,
+        implements
         View.OnClickListener,
         ActionMode.Callback {
 
@@ -84,9 +84,43 @@ public class RecyclerViewDemoActivity
         // with the help of a GestureDetector;
         // Tip by Ian Lake on G+ in a comment to this post:
         // https://plus.google.com/+LucasRocha/posts/37U8GWtYxDE
-        recyclerView.addOnItemTouchListener(this);
-        gestureDetector =
-                new GestureDetectorCompat(this, new RecyclerViewDemoOnGestureListener());
+        recyclerView.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
+
+            @Override
+            public boolean onInterceptTouchEvent(RecyclerView rv, MotionEvent e) {
+                gestureDetector.onTouchEvent(e);
+                return false;
+            }
+
+            @Override
+            public void onTouchEvent(RecyclerView rv, MotionEvent e) {
+            }
+
+            @Override
+            public void onRequestDisallowInterceptTouchEvent(boolean b) {
+
+            }
+        });
+        gestureDetector = new GestureDetectorCompat(this, new SimpleOnGestureListener(){
+            @Override
+            public boolean onSingleTapConfirmed(MotionEvent e) {
+                View view = recyclerView.findChildViewUnder(e.getX(), e.getY());
+                onClick(view);
+                return super.onSingleTapConfirmed(e);
+            }
+
+            public void onLongPress(MotionEvent e) {
+                View view = recyclerView.findChildViewUnder(e.getX(), e.getY());
+                if (actionMode != null) {
+                    return;
+                }
+                // Start the CAB using the ActionMode.Callback defined above
+                actionMode = startActionMode(RecyclerViewDemoActivity.this);
+                int idx = recyclerView.getChildLayoutPosition(view);
+                myToggleSelection(idx);
+                super.onLongPress(e);
+            }
+        });
 
         // fab
         View fab = findViewById(R.id.fab_add);
@@ -139,7 +173,7 @@ public class RecyclerViewDemoActivity
             addItemToList();
         } else if (view.getId() == R.id.container_list_item) {
             // item click
-            int idx = recyclerView.getChildPosition(view);
+            int idx = recyclerView.getChildLayoutPosition(view);
             if (actionMode != null) {
                 myToggleSelection(idx);
                 return;
@@ -161,20 +195,6 @@ public class RecyclerViewDemoActivity
         actionMode.setTitle(title);
     }
 
-    @Override
-    public boolean onInterceptTouchEvent(RecyclerView rv, MotionEvent e) {
-        gestureDetector.onTouchEvent(e);
-        return false;
-    }
-
-    @Override
-    public void onTouchEvent(RecyclerView rv, MotionEvent e) {
-    }
-
-    @Override
-    public void onRequestDisallowInterceptTouchEvent(boolean b) {
-
-    }
 
     @Override
     public boolean onCreateActionMode(ActionMode actionMode, Menu menu) {
@@ -213,27 +233,6 @@ public class RecyclerViewDemoActivity
         this.actionMode = null;
         adapter.clearSelections();
         fab.setVisibility(View.VISIBLE);
-    }
-
-    private class RecyclerViewDemoOnGestureListener extends SimpleOnGestureListener {
-        @Override
-        public boolean onSingleTapConfirmed(MotionEvent e) {
-            View view = recyclerView.findChildViewUnder(e.getX(), e.getY());
-            onClick(view);
-            return super.onSingleTapConfirmed(e);
-        }
-
-        public void onLongPress(MotionEvent e) {
-            View view = recyclerView.findChildViewUnder(e.getX(), e.getY());
-            if (actionMode != null) {
-                return;
-            }
-            // Start the CAB using the ActionMode.Callback defined above
-            actionMode = startActionMode(RecyclerViewDemoActivity.this);
-            int idx = recyclerView.getChildPosition(view);
-            myToggleSelection(idx);
-            super.onLongPress(e);
-        }
     }
 }
 
